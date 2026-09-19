@@ -31,6 +31,7 @@ export type SyncDirection = SyncPair['syncDirection'];
 
 export interface SyncPreferences {
   ignorePatterns: string[];
+  allowedExtensions: string[];
   propagateDeletions: boolean;
   pauseOnConflicts: boolean;
 }

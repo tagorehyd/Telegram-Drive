@@ -44,13 +44,6 @@ export default function AccessibilityFixtures() {
   }, [fixture]);
 
   if (fixture === 'auth') {
-    // AuthWizard intentionally shows a browser-only notice outside Tauri. This
-    // development fixture marks the page as native so axe exercises the real
-    // sign-in form. Its startup probes fail closed here, so native state is not
-    // changed by the browser fixture.
-    if (!('__TAURI_INTERNALS__' in window)) {
-      Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
-    }
     return <main className="min-h-screen bg-app-canvas"><AuthWizard onLogin={() => undefined} /></main>;
   }
 

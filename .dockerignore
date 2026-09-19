@@ -1,0 +1,17 @@
+# Keep the Docker build context small and ensure host-specific artifacts are
+# never copied into the image.
+.git
+.github
+node_modules
+**/node_modules
+app/dist
+**/dist
+app/test-results
+app/playwright-report
+app/coverage
+supporter-service/coverage
+*.log
+.env
+.env.*
+CompiledApps
+
