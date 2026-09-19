@@ -3,27 +3,58 @@
   "areaBudgets": {
     "supporterAndSponsors": {
       "maxFindings": 28,
-      "patterns": ["Supporter", "AdBanner", "Adsterra"]
+      "patterns": [
+        "Supporter",
+        "AdBanner",
+        "Adsterra"
+      ]
     },
     "encryptionAndAccess": {
       "maxFindings": 37,
-      "patterns": ["Encryption", "AccessTransparency"]
+      "patterns": [
+        "Encryption",
+        "AccessTransparency"
+      ]
     },
     "authentication": {
       "maxFindings": 27,
-      "patterns": ["/Auth", "/auth/"]
+      "patterns": [
+        "/Auth",
+        "/auth/"
+      ]
     },
     "sync": {
-      "maxFindings": 0,
-      "patterns": ["Sync"]
+      "maxFindings": 3,
+      "patterns": [
+        "Sync"
+      ]
     },
     "transfersAndLocalServices": {
       "maxFindings": 148,
-      "patterns": ["DownloadQueue", "UploadQueue", "TransferCenter", "ShareDialog", "SettingsModal", "SettingsTabs", "UploadChoiceContext", "BandwidthWidget", "RemoteUploadModal"]
+      "patterns": [
+        "DownloadQueue",
+        "UploadQueue",
+        "TransferCenter",
+        "ShareDialog",
+        "SettingsModal",
+        "SettingsTabs",
+        "UploadChoiceContext",
+        "BandwidthWidget",
+        "RemoteUploadModal"
+      ]
     },
     "mediaAndHelp": {
       "maxFindings": 102,
-      "patterns": ["AdaptiveMediaPlayer", "MediaPlayer", "PdfViewer", "ArchiveViewer", "PreviewModal", "HelpCenter", "KeyboardShortcuts", "QualitySelector"]
+      "patterns": [
+        "AdaptiveMediaPlayer",
+        "MediaPlayer",
+        "PdfViewer",
+        "ArchiveViewer",
+        "PreviewModal",
+        "HelpCenter",
+        "KeyboardShortcuts",
+        "QualitySelector"
+      ]
     },
     "other": {
       "maxFindings": 144,

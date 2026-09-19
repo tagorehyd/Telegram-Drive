@@ -422,6 +422,10 @@ async fn scan_local(root: &str, preferences: &policy::SyncPreferences) -> Result
             if !entry.file_type().is_file() {
                 continue;
             }
+            let relative = entry.path().strip_prefix(&canonical_root).unwrap_or(entry.path()).components().map(|component| component.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/");
+            if !preferences.allows_file(&relative) {
+                continue;
+            }
             if entry
                 .file_name()
                 .to_string_lossy()

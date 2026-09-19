@@ -33,12 +33,10 @@ import { ExternalDropBlocker } from './dashboard/ExternalDropBlocker';
 import type { SettingsTab } from './dashboard/SettingsModal';
 import { RenameFolderModal } from './dashboard/RenameFolderModal';
 import { RenameFileModal } from './dashboard/RenameFileModal';
-import { DesktopAdBanner } from './dashboard/DesktopAdBanner';
 import { RemoteUploadModal } from './dashboard/RemoteUploadModal';
 import { KeyboardShortcutsDialog } from './dashboard/KeyboardShortcutsDialog';
 import { DriveConceptTour } from './dashboard/DriveConceptTour';
 import { LazyFeatureBoundary } from '../shared/LazyFeatureBoundary';
-import { SupporterOfferDialog } from '../shared/SupporterOfferDialog';
 import { SyncDashboard } from './sync/SyncDashboard';
 import { Files, Link, Copy, Check, X, Loader2, Share2 } from 'lucide-react';
 
@@ -52,9 +50,7 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useGlobalFileSearch } from '../../hooks/useGlobalFileSearch';
 import { useSettings } from '../../context/SettingsContext';
 import { useActionScope } from '../../hooks/useActionScope';
-import { useSupporter } from '../../context/SupporterContext';
 import { DEFAULT_SEARCH_FILTERS, filterAndRankFiles, type FileSearchFilters } from '../../services/fileSearch';
-import { shouldShowSupporterPrompt, SUPPORTER_VALUE_MOMENT_EVENT, type SupporterPromptTrigger } from '../../services/supporterVisibility';
 import { markDesktopFrontendReady, markDesktopFrontendUnready, type DesktopNavigationRequest } from '../../services/desktopLifecycle';
 import { fileQueryKey, refreshFolderFiles, updateFileQueryData } from '../../services/fileListRefresh';
 import { getAdjacentPreview, previewFileKey, samePreviewFile as sameFile } from '../../services/previewNavigation';
@@ -92,7 +88,6 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
 
     const { settings, updateSetting, updateSettings, isLoaded: settingsLoaded } = useSettings();
     const captureMutationScope = useActionScope(accountId);
-    const { status: supporterStatus } = useSupporter();
 
     useEffect(() => {
         if (sessionStorage.getItem('telegram-drive-recovered-session') !== 'true') return;
@@ -116,7 +111,6 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     const [transferCenterOpenRequest, setTransferCenterOpenRequest] = useState(0);
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
-    const [supporterOfferTrigger, setSupporterOfferTrigger] = useState<SupporterPromptTrigger | null>(null);
     const [createFolderRequest, setCreateFolderRequest] = useState(0);
     const [activeSmartView, setActiveSmartView] = useState<SmartView | null>('recents');
     const [searchTerm, setSearchTerm] = useState("");
@@ -207,28 +201,6 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         };
     }, [t]);
 
-    useEffect(() => {
-        if (supporterStatus.ad_free) {
-            setSupporterOfferTrigger(null);
-        }
-    }, [supporterStatus.ad_free]);
-
-    const showSupporterOffer = useCallback((trigger: SupporterPromptTrigger) => {
-        if (!settingsLoaded || !settings.driveTourSeen) return;
-        if (!shouldShowSupporterPrompt(supporterStatus, settings.supporterPromptLastShownAt)) return;
-        if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
-        updateSetting('supporterPromptLastShownAt', Date.now());
-        setSupporterOfferTrigger(trigger);
-    }, [settings.driveTourSeen, settings.supporterPromptLastShownAt, settingsLoaded, supporterStatus, updateSetting]);
-
-    useEffect(() => {
-        const showSupporterAfterValueMoment = (event: Event) => {
-            const moment = (event as CustomEvent<{ moment?: SupporterPromptTrigger }>).detail?.moment;
-            if (moment === 'upload_completed' || moment === 'download_completed') showSupporterOffer(moment);
-        };
-        window.addEventListener(SUPPORTER_VALUE_MOMENT_EVENT, showSupporterAfterValueMoment);
-        return () => window.removeEventListener(SUPPORTER_VALUE_MOMENT_EVENT, showSupporterAfterValueMoment);
-    }, [showSupporterOffer]);
 
     useEffect(() => {
         const openSettings = (event: Event) => {
@@ -486,7 +458,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         onRename: handleKeyboardRename,
         onShowShortcuts: () => setShowShortcuts(true),
         enabled: !previewFile && !playingFile && !pdfFile && !archiveViewFile
-            && !showMoveModal && !showSettings && !showShortcuts && !showHelp && !supporterOfferTrigger && workspaceKeys === null
+            && !showMoveModal && !showSettings && !showShortcuts && !showHelp && workspaceKeys === null
             && !showRemoteUpload && !shareFile && !bulkShareLinks
             && settings.driveTourSeen
     });
@@ -993,7 +965,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
 
             {showShortcuts && <KeyboardShortcutsDialog onClose={() => setShowShortcuts(false)} />}
 
-            {settingsLoaded && supporterStatus.state !== 'loading' && !settings.driveTourSeen && (
+            {settingsLoaded && !settings.driveTourSeen && (
                 <DriveConceptTour
                     onFinish={() => updateSetting('driveTourSeen', true)}
                     onOpenHelp={() => { updateSetting('driveTourSeen', true); setShowHelp(true); }}
@@ -1001,24 +973,6 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
             )}
 
             {showHelp && <LazyFeatureBoundary><LazyHelpCenterDialog onClose={() => setShowHelp(false)} /></LazyFeatureBoundary>}
-
-            {supporterOfferTrigger && (
-                <SupporterOfferDialog
-                    trigger={supporterOfferTrigger}
-                    onClose={() => setSupporterOfferTrigger(null)}
-                    onOpenSupporter={() => { setSupporterOfferTrigger(null); setSettingsInitialTab('privacy'); setShowSettings(true); }}
-                />
-            )}
-
-            <DesktopAdBanner
-                suppressed={
-                    uploadQueue.some(item => ['pending', 'uploading', 'downloading', 'encrypting', 'verifying'].includes(item.status))
-                    || downloadQueue.some(item => ['pending', 'cooldown', 'downloading', 'decrypting', 'verifying'].includes(item.status))
-                    || Boolean(previewFile || playingFile || pdfFile || archiveViewFile || showSettings || showMoveModal || shareFile || showRemoteUpload || showHelp || supporterOfferTrigger || !settings.driveTourSeen)
-                }
-                onSupport={() => { setSettingsInitialTab('privacy'); setShowSettings(true); }}
-                onManualDismiss={() => showSupporterOffer('ad_dismissed')}
-            />
 
             {shareFile && shareOwnerId && (
                 <LazyFeatureBoundary>

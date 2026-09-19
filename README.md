@@ -39,6 +39,7 @@ Telegram Drive turns Telegram's familiar file storage into a focused, desktop-st
 - [Android and Google TV](#android-and-google-tv-signed-preview)
 - [Documentation](#documentation)
 - [Build from source](#build-from-source)
+- [Docker Web UI](#docker-web-ui)
 
 ## At a glance
 
@@ -94,6 +95,19 @@ Telegram Drive uses Telegram's MTProto API for authentication and file operation
 - Standard uploads are stored in Telegram in their normal form. Optional TDENC2 uploads are encrypted locally before transfer.
 
 The application caps a Telegram object at exactly **2,000,000,000 bytes**. Encrypted files need additional envelope space, so their maximum original plaintext size is slightly lower.
+
+## Docker Web UI
+
+Run the browser interface as a single hardened container:
+
+```bash
+docker compose up --build -d
+```
+
+The Web UI is available at `http://localhost:8080`; its health endpoint is
+`/healthz`. This is deliberately a Web UI-only distribution—native Telegram
+file operations and device integrations remain in the Tauri application. See
+[Docker Web UI](DOCKER.md) for deployment, security, and capability details.
 
 ## Features
 

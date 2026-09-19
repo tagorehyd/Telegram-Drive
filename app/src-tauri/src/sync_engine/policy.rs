@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", default)]
 pub struct SyncPreferences {
     pub ignore_patterns: Vec<String>,
+    /// When non-empty, automatic upload scans include only files with one of
+    /// these extensions. Values are stored lowercase without a leading dot.
+    pub allowed_extensions: Vec<String>,
     pub propagate_deletions: bool,
     pub pause_on_conflicts: bool,
 }
@@ -14,6 +17,7 @@ impl Default for SyncPreferences {
     fn default() -> Self {
         Self {
             ignore_patterns: vec![".git/".into(), "node_modules/".into(), ".DS_Store".into()],
+            allowed_extensions: Vec::new(),
             propagate_deletions: false,
             pause_on_conflicts: true,
         }
@@ -40,6 +44,20 @@ impl SyncPreferences {
         self.ignore_patterns.retain(|pattern| !pattern.is_empty());
         self.ignore_patterns.sort();
         self.ignore_patterns.dedup();
+        if self.allowed_extensions.len() > 64 {
+            return Err("Use at most 64 file extensions".into());
+        }
+        for extension in &mut self.allowed_extensions {
+            *extension = extension.trim().trim_start_matches('.').to_ascii_lowercase();
+            if extension.is_empty()
+                || extension.len() > 32
+                || !extension.chars().all(|character| character.is_ascii_alphanumeric())
+            {
+                return Err("Each extension must contain only letters or numbers".into());
+            }
+        }
+        self.allowed_extensions.sort();
+        self.allowed_extensions.dedup();
         Ok(self)
     }
 
@@ -52,6 +70,15 @@ impl SyncPreferences {
         self.ignore_patterns
             .iter()
             .any(|pattern| matches_ignore_pattern(pattern, relative_path))
+    }
+
+    pub fn allows_file(&self, relative_path: &str) -> bool {
+        self.allowed_extensions.is_empty()
+            || relative_path.rsplit_once('.').is_some_and(|(_, extension)| {
+                self.allowed_extensions
+                    .iter()
+                    .any(|allowed| allowed.eq_ignore_ascii_case(extension))
+            })
     }
 }
 
@@ -174,5 +201,18 @@ mod tests {
         }
         .validated()
         .is_err());
+    }
+
+    #[test]
+    fn extension_filter_is_normalized_and_only_allows_selected_files() {
+        let preferences = SyncPreferences {
+            allowed_extensions: vec![".MP4".into(), "mkv".into(), "mp4".into()],
+            ..SyncPreferences::default()
+        }.validated().unwrap();
+        assert_eq!(preferences.allowed_extensions, ["mkv", "mp4"]);
+        assert!(preferences.allows_file("videos/holiday.MP4"));
+        assert!(preferences.allows_file("videos/film.mkv"));
+        assert!(!preferences.allows_file("videos/notes.txt"));
+        assert!(!preferences.allows_file("videos/no-extension"));
     }
 }

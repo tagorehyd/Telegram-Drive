@@ -22,6 +22,7 @@ export function SyncSettingsPanel() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [direction, setDirection] = useState<SyncDirection>('upload_only');
   const [ignoreText, setIgnoreText] = useState(DEFAULT_IGNORES);
+  const [extensionsText, setExtensionsText] = useState('mp4, mkv, mov, webm, avi, m4v');
   const [propagateDeletions, setPropagateDeletions] = useState(false);
   const [pauseOnConflicts, setPauseOnConflicts] = useState(true);
   const [activateAfterSave, setActivateAfterSave] = useState(false);
@@ -35,7 +36,7 @@ export function SyncSettingsPanel() {
   const enabled = settings.data?.enabled ?? false;
   const editingPair = (pairs.data ?? []).find(pair => pair.id === editingId);
   const selectedFolder = useMemo(() => folders.find(folder => folder.id === channelId), [channelId, folders]);
-  const draftSignature = JSON.stringify([editingId, selectedPath, channelId, direction, ignoreText, propagateDeletions, pauseOnConflicts]);
+  const draftSignature = JSON.stringify([editingId, selectedPath, channelId, direction, ignoreText, extensionsText, propagateDeletions, pauseOnConflicts]);
 
   useEffect(() => {
     let disposed = false;
@@ -53,7 +54,7 @@ export function SyncSettingsPanel() {
   const resetDraft = () => {
     previewSequence.current += 1;
     setEditingId(null); setSelectedPath(null); setChannelId('');
-    setDirection('upload_only'); setIgnoreText(DEFAULT_IGNORES);
+    setDirection('upload_only'); setIgnoreText(DEFAULT_IGNORES); setExtensionsText('mp4, mkv, mov, webm, avi, m4v');
     setPropagateDeletions(false); setPauseOnConflicts(true); setActivateAfterSave(false);
     setPreview(null); setPreviewError(null); setPreviewBusy(false);
   };
@@ -61,6 +62,7 @@ export function SyncSettingsPanel() {
   const editPair = (pair: SyncPair) => {
     setEditingId(pair.id); setSelectedPath(pair.localPath); setChannelId(pair.channelId);
     setDirection(pair.syncDirection); setIgnoreText(pair.preferences?.ignorePatterns.join('\n') ?? DEFAULT_IGNORES);
+    setExtensionsText(pair.preferences?.allowedExtensions.join(', ') ?? '');
     setPropagateDeletions(pair.preferences?.propagateDeletions ?? false);
     setPauseOnConflicts(pair.preferences?.pauseOnConflicts ?? true);
     setActivateAfterSave(Boolean(pair.accountOwner && pair.isActive));
@@ -75,7 +77,7 @@ export function SyncSettingsPanel() {
     if (!ownerId || !selectedPath || channelId === '') return;
     const request: SyncPreviewRequest = {
       pairId: editingId, localPath: selectedPath, channelId, syncDirection: direction,
-      preferences: { ignorePatterns: ignoreText.split(/\r?\n/).map(pattern => pattern.trim()).filter(Boolean), propagateDeletions, pauseOnConflicts },
+      preferences: { ignorePatterns: ignoreText.split(/\r?\n/).map(pattern => pattern.trim()).filter(Boolean), allowedExtensions: extensionsText.split(/[\s,]+/).map(extension => extension.trim()).filter(Boolean), propagateDeletions, pauseOnConflicts },
     };
     const sequence = ++previewSequence.current;
     setPreviewBusy(true); setPreview(null); setPreviewError(null);
@@ -174,6 +176,11 @@ export function SyncSettingsPanel() {
       <div className="space-y-2">
         <label className="flex items-start gap-2 text-xs leading-5 text-app-text"><input type="checkbox" disabled={busy} checked={propagateDeletions} onChange={event => setPropagateDeletions(event.target.checked)} className="mt-1 accent-app-accent" />{direction === 'upload_only' ? t('syncPreview.delete_upload') : direction === 'download_only' ? t('syncPreview.delete_download') : t('syncPreview.delete_both')}</label>
         <p className="text-xs leading-5 text-app-text-tertiary">{t('syncPreview.deletion_guard')}</p><p className="text-xs leading-5 text-app-text-secondary">{t('syncPreview.version_notice')}</p>
+      </div>
+      <div>
+        <label htmlFor="sync-extensions" className="mb-1 block text-xs font-medium text-app-text">Upload only these extensions</label>
+        <input id="sync-extensions" value={extensionsText} disabled={busy} onChange={event => setExtensionsText(event.target.value)} placeholder="mp4, mkv, mov" className="quiet-control w-full border border-app-border bg-app-surface px-3 py-2 font-mono text-xs text-app-text" />
+        <p className="mt-1 text-xs leading-5 text-app-text-tertiary">Comma-separated extensions. Leave empty to include every file. Video extensions are preselected for new upload-only folders.</p>
       </div>
       <div>
         <label htmlFor="sync-ignore-patterns" className="mb-1 block text-xs font-medium text-app-text">{t('syncPreview.ignore_patterns')}</label>
